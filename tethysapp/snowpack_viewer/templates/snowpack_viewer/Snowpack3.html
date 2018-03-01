@@ -1,0 +1,128 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://js.arcgis.com/4.6/esri/css/main.css">
+<script src="https://js.arcgis.com/4.6/"></script>
+
+<title style= "color: navy;">Snowpack Viewer</title>
+
+<style>
+  html, body, #viewDiv {
+    padding: 0;
+    margin: 0;
+    height: 100%;
+    width: 100%;
+  }
+</style>
+<link rel="stylesheet" href="https://js.arcgis.com/4.6/esri/css/main.css">
+<script src="https://js.arcgis.com/4.6/"></script>
+<script>
+require([
+    "esri/Map",
+    "esri/views/MapView",
+	"esri/layers/FeatureLayer",
+	"esri/layers/MapImageLayer",
+    "dojo/dom",  // require dojo/dom for getting the DOM element
+    "dojo/on",   // require dojo/on for listening to events on the DOM
+    "dojo/domReady!"
+], function(Map, MapView, FeatureLayer, MapImageLayer, dom, on){
+	
+	var template = { // autocasts as new PopupTemplate()
+
+        title: "Snotel Stations",
+
+        content: "<p>Station Name: <b>{NAME}</b></p>" +
+			"<ul><li>Latitude: {LATITUDE}<li>" +
+			"Longitude: {LONGITUDE}" +
+			"<li>Network: {NETWORK}<li><ul>"
+	};
+	
+	var utah_dem_Lyr = new MapImageLayer({
+		url: "http://geoserver2.byu.edu/arcgis/rest/services/The_SnowMen/Utah_DEM/MapServer",
+		id: "utahdem"
+	});
+	var snotelLyr = new FeatureLayer ({
+	  url: "http://geoserver2.byu.edu/arcgis/rest/services/The_SnowMen_FS/Snotel_Network/FeatureServer/0",
+	  outFields: ["*"],
+	  popupTemplate: template
+	
+	});
+	
+	var map = new Map({
+	  basemap: "satellite",
+	});
+	
+	var view = new MapView({
+	  container: "viewDiv",  // Reference to the scene div created in step 5
+	  map: map,  // Reference to the map object created before the scene
+	  zoom: 4,  // Sets zoom level based on level of detail (LOD)
+	  center: [-111.1, 39.1]  // Sets center point of view using longitude,latitude
+	});
+	
+	
+	map.layers.add(utah_dem_Lyr);
+	map.add(snotelLyr);
+	
+	
+	
+	var snotelLyrToggle = dom.byId("snoLyr");
+
+    // Listen to the onchange event for the checkbox
+    on(snotelLyrToggle, "change", function(){
+      // When the checkbox is checked (true), set the layer's visibility to true
+      snotelLyr.visible = snotelLyrToggle.checked;
+    });
+	
+	// Create a variable referencing the checkbox node
+    var demLyrToggle = dom.byId("dem");
+
+    // Listen to the onchange event for the checkbox
+    on(demLyrToggle, "change", function(){
+      // When the checkbox is checked (true), set the layer's visibility to true
+      utah_dem_Lyr.visible = demLyrToggle.checked;
+    });
+
+  });
+</script>
+
+</head>
+
+<body style="text-align:center">
+<h1 style= "text-align:center; font-size:500%; color: navy; font-family:Impact, Haettenschweiler, 'Franklin Gothic Bold', 'Arial Black', sans-serif; border: 1px solid powderblue; background-color: powderblue; padding: 30px;">Snowpack Viewer</h1>
+<br />
+<p style="font-size:200%;">By Travis McStraw</p>
+<br />
+<p style="font-size:200%;">Date:2/13/2018</p>
+<br />
+
+<p> Snowpack Viewer is a decision support tool for engineers that uses various Snotel data stations along the wasatch front along with MODIS satellite data in order to calculate the volume of snowpack that exists in the wasatch mountain range.  Through a form of kriging interpolation and other geoprocessing tools, users can view the snowpack data in order to make educated decisions to prepare for spring runoff events, and avoid potential flooding in years when the snowfall is above average.</p>
+<br />
+<form style="background-color:powderblue;" action="/action_page.php">
+  <select name="location" size="5">
+    <option value="utah_valley">Utah Valley</option>
+    <option value="salt_lake_valley">Salt Lake Valley</option>
+    <option value="logan_area">Logan Area</option>
+    <option value="ogden">Ogden Area</option>
+  </select>
+  <br>
+  <input type="submit">
+</form>
+<br />
+<span id="layerToggle">
+    <input type="checkbox" id="dem" checked> Utah_DEM
+  </span>
+  <br />
+  <span id="layToggle">
+    <input type="checkbox" id="snoLyr" checked> Snotel Stations
+  </span>
+
+<div id="viewDiv" style="width:900px; height:700px"></div>
+  
+  
+<br />
+<button style="background-color:powderblue;" type="button" onclick="alert('Travis McStraw, Jason Beisinger, Jorge Sanchez, BYU')">Contact Us</button>
+</body>
+</html>
