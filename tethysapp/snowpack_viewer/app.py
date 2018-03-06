@@ -54,6 +54,11 @@ class SnowpackViewer(TethysAppBase):
                 url='snowpack-viewer/mockup',
                 controller='snowpack_viewer.controllers.mockup'
             ),
+            UrlMap(
+                name='animation',
+                url='snowpack-viewer/animation',
+                controller='snowpack_viewer.controllers.animation'
+            ),
         )
 
         return url_maps

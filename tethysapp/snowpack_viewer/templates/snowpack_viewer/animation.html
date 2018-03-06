@@ -4,18 +4,35 @@
 <link rel="stylesheet" href="https://js.arcgis.com/4.6/esri/css/main.css">
 <script src="https://js.arcgis.com/4.6/"></script>
 
+
 {% block header_buttons %}
   <div class="header-button glyphicon-button" data-toggle="tooltip" data-placement="bottom" title="Help">
     <a data-toggle="modal" data-target="#help-modal"><span class="glyphicon glyphicon-question-sign"></span></a>
   </div>
 {% endblock %}
+{% block app_navigation_items %}
+<h6>Region Name</h6>
+<br>
+<p>Select a Day</p>
+{% gizmo date_picker %}
+
+<br>
+<p>Select Display Layers</p>
+<br>
+<span id="layerToggle">
+    <input type="checkbox" id="dem" checked> Utah_DEM
+  </span>
+  <br />
+  <span id="layToggle">
+    <input type="checkbox" id="snoLyr" checked> Snotel Stations
+  </span>
+
+{% endblock %}
 
 {% block app_content %}
   <h1>Snowpack Viewer</h1>
-  <p>Select a region to view changes in Snowpack</p>
-<br>
-{% gizmo select_region %}
-{% gizmo select_region_button %}
+
+  <p></p>
 <br>
 <br>
 <style>
@@ -96,15 +113,11 @@ require([
 
   });
 </script>
-  <span id="layerToggle">
-    <input type="checkbox" id="dem" checked> Utah_DEM
-  </span>
-  <br />
-  <span id="layToggle">
-    <input type="checkbox" id="snoLyr" checked> Snotel Stations
-  </span>
+
 
 <div id="viewDiv" style="margin:10%; width:900px; height:700px;"></div>
+<br>
+{% gizmo time_series_plot %}
 {% endblock %}
 
 {# Use the after_app_content block for modals #}
