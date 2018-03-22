@@ -131,3 +131,19 @@ def animation(request):
             'date_picker_error': date_picker_error,
     }
     return render(request, 'snowpack_viewer/animation.html', context)
+
+def gpservice(request):
+    """
+    Controller for the app home page.
+    """
+
+
+    return render(request, 'snowpack_viewer/gpservice.html')
+
+def modis(request):
+    """
+    Controller for the app home page.
+    """
+
+
+    return render(request, 'snowpack_viewer/modis.html')

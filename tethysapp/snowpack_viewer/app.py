@@ -59,6 +59,16 @@ class SnowpackViewer(TethysAppBase):
                 url='snowpack-viewer/animation',
                 controller='snowpack_viewer.controllers.animation'
             ),
+            UrlMap(
+                name='gpservice',
+                url='snowpack-viewer/gpservice',
+                controller='snowpack_viewer.controllers.gpservice'
+            ),
+            UrlMap(
+                name='modis',
+                url='snowpack-viewer/modis',
+                controller='snowpack_viewer.controllers.modis'
+            ),
         )
 
         return url_maps

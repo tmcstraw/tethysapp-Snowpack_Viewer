@@ -1,6 +1,9 @@
 {% extends "snowpack_viewer/base.html" %}
 {% load tethys_gizmos %}
 
+<link rel="stylesheet" href="https://js.arcgis.com/4.6/esri/css/main.css">
+<script src="https://js.arcgis.com/4.6/"></script>
+
 {% block header_buttons %}
   <div class="header-button glyphicon-button" data-toggle="tooltip" data-placement="bottom" title="Help">
     <a data-toggle="modal" data-target="#help-modal"><span class="glyphicon glyphicon-question-sign"></span></a>
@@ -8,30 +11,13 @@
 {% endblock %}
 
 {% block app_content %}
-  <h1>Data Services</h1>
-  <p>This app contains data from Snotel network stations across the Wasatch Mountain Region.  These stations provide snowfall data that helps the application calculate the changes in snowpack over time and is provided using a feature service.  The raw data can be found here:
-    <br><br>https://wcc.sc.egov.usda.gov/nwcc/rgrpt?report=daily_snowdelta_7day&state=ut
-    <br><br>The app also includes DEM data from the utah.gov website which is provided by a web mapping service.
-    <br>The data is being hosted on a server in the BYU Hydroinformatics laboratory at Drew's workstation,
-    and the app uses an ArcGIS server as its processing engine which is also provided by BYU.
-    <br>
-    <br>The raw data can be viewed and accessed from our geoserver here:
-    <br><br> - <a href="http://geoserver2.byu.edu/arcgis/rest/services/The_SnowMen" target="_blank">Utah DEM Data</a>
-    <br><br> - <a href="http://geoserver2.byu.edu/arcgis/rest/services/The_SnowMen_FS" target="_blank">Snowtel Data</a>
-  </p>
+  <h1>Snowpack Viewer</h1>
+  <p>Click on the map to interpolate between Snowtel Layers in Utah County</p>
 <br>
-<br>
+
 <br>
 <br>
 
-<style>
-  html, body, #viewDiv {
-    padding: 0;
-    margin: 0;
-    height: 100%;
-    width: 100%;
-  }
-</style>
 <link rel="stylesheet" href="https://js.arcgis.com/4.6/esri/css/main.css">
 <script src="https://js.arcgis.com/4.6/"></script>
 <script>
@@ -41,11 +27,18 @@ require([
   "esri/Graphic",
   "esri/geometry/Point",
   "esri/tasks/Geoprocessor",
+  "esri/layers/FeatureLayer",
   "esri/tasks/support/LinearUnit",
   "esri/tasks/support/FeatureSet",
+  "esri/layers/MapImageLayer",
+  "esri/layers/support/ImageParameters",
   "esri/views/MapView",
+  "dojo/dom",  // require dojo/dom for getting the DOM element
+  "dojo/on",   // require dojo/on for listening to events on the DOM
   "dojo/domReady!"
-], function(Map, GraphicsLayer, Graphic, Point, Geoprocessor, LinearUnit, FeatureSet, MapView){
+],
+
+function(Map, GraphicsLayer, Graphic, Point, Geoprocessor, FeatureLayer, LinearUnit, FeatureSet, MapImageLayer, ImageParameters, MapView, dom, on){
 
 	//a map with basemap
 	var map = new Map({
@@ -56,6 +49,27 @@ require([
     var graphicsLayer = new GraphicsLayer();
     map.add(graphicsLayer);
 
+    var template = { // autocasts as new PopupTemplate()
+
+        title: "Snotel Stations",
+
+        content: "<p>Station Name: <b>{NAME}</b></p>" +
+			"<ul><li>Latitude: {LATITUDE}<li>" +
+			"Longitude: {LONGITUDE}" +
+			"<li>Network: {NETWORK}<li><ul>"
+	};
+
+    var utah_dem_Lyr = new MapImageLayer({
+		url: "http://geoserver2.byu.edu/arcgis/rest/services/The_SnowMen/Utah_DEM/MapServer",
+		id: "utahdem"
+	});
+	var snotelLyr = new FeatureLayer ({
+	  url: "http://geoserver2.byu.edu/arcgis/rest/services/The_SnowMen_FS/Snotel_Network/FeatureServer/0",
+	  outFields: ["*"],
+	  popupTemplate: template
+
+	});
+
     var view = new MapView({
     container: "viewDiv",
     map: map,
@@ -63,28 +77,11 @@ require([
 	zoom: 6
     });
 
-	// symbol for input point
-	var markerSymbol = {
-          type: "simple-marker", // autocasts as new SimpleMarkerSymbol()
-          color: [255, 0, 0],
-          outline: { // autocasts as new SimpleLineSymbol()
-            color: [255, 255, 255],
-            width: 2
-          }
-        };
-
-	// symbol for buffered polygon
-    var fillSymbol = {
-          type: "simple-fill", // autocasts as new SimpleFillSymbol()
-          color: [226, 119, 40, 0.75],
-          outline: { // autocasts as new SimpleLineSymbol()
-            color: [255, 255, 255],
-            width: 1
-          }
-        };
+    map.layers.add(utah_dem_Lyr);
+	map.add(snotelLyr);
 
 	// Geoprocessing service url
-	var gpUrl = "http://geoserver2.byu.edu/arcgis/rest/services/sherry/BufferPoints/GPServer/Buffer%20Points";
+	var gpUrl = "http://geoserver2.byu.edu/arcgis/rest/services/The_SnowMen_FS/TheRealInterpolation/GPServer/Model";
 
     // create a new Geoprocessor
 	var gp = new Geoprocessor(gpUrl);
@@ -93,52 +90,39 @@ require([
           wkid: 102100 //EPSG3857
         };
 	//add map click function
-    view.on("click", surface);
+    view.on("click", interpolate);
 
 	//main function
-    function bufferPoint(event) {
+    function interpolate(event) {
 
-          graphicsLayer.removeAll();
-          var point = new Point({
-            longitude: event.mapPoint.longitude,
-            latitude: event.mapPoint.latitude
-          });
-          var inputGraphic = new Graphic({
-            geometry: point,
-            symbol: markerSymbol
-          });
-          graphicsLayer.add(inputGraphic);
-          var inputGraphicContainer = [];
-          inputGraphicContainer.push(inputGraphic);
-          var featureSet = new FeatureSet();
-          featureSet.features = inputGraphicContainer;
-          var bfDistance = new LinearUnit();
-          bfDistance.distance = 100;
-          bfDistance.units = "miles";
 
 		  // input parameters
           var params = {
-            "Point": featureSet,
-            "Distance": bfDistance
+            "Z_value_field": "Elevation_"
+
           };
           gp.submitJob(params).then(completeCallback, errBack, statusCallback);
     }
 
 	function completeCallback(result){
+        console.log(result);
 
-        gp.getResultData(result.jobId, "Output_Polygon").then(drawResult, drawResultErrBack);
 
+        // set imageParameters
+          var imageParams = new ImageParameters({
+            format: "png32",
+            dpi: 300
+          });
+
+          // get the task result as a MapImageLayer
+          var resultLayer = gp.getResultMapImageLayer(result.jobId);
+          resultLayer.opacity = 0.7;
+          resultLayer.title = "surface";
+
+          // add the result layer to the map
+          map.layers.add(resultLayer);
 	}
 
-	function drawResult(data){
-	    var polygon_feature = data.value.features[0];
-		polygon_feature.symbol = fillSymbol;
-		graphicsLayer.add(polygon_feature);
-	}
-
-	function drawResultErrBack(err) {
-        console.log("draw result error: ", err);
-    }
 
 	function statusCallback(data) {
         console.log(data.jobStatus);
@@ -146,8 +130,35 @@ require([
     function errBack(err) {
         console.log("gp error: ", err);
     }
+
+    var snotelLyrToggle = dom.byId("snoLyr");
+
+    // Listen to the onchange event for the checkbox
+    on(snotelLyrToggle, "change", function(){
+      // When the checkbox is checked (true), set the layer's visibility to true
+      snotelLyr.visible = snotelLyrToggle.checked;
+    });
+
+	// Create a variable referencing the checkbox node
+    var demLyrToggle = dom.byId("dem");
+
+    // Listen to the onchange event for the checkbox
+    on(demLyrToggle, "change", function(){
+      // When the checkbox is checked (true), set the layer's visibility to true
+      utah_dem_Lyr.visible = demLyrToggle.checked;
+    });
 });
 </script>
+
+<span id="layerToggle">
+    <input type="checkbox" id="dem" checked> Utah_DEM
+  </span>
+  <br />
+  <span id="layToggle">
+    <input type="checkbox" id="snoLyr" checked> Snotel Stations
+  </span>
+
+<div id="viewDiv" style="margin:10%; width:900px; height:700px;"></div>
 {% endblock %}
 
 {# Use the after_app_content block for modals #}
@@ -172,8 +183,6 @@ require([
       </div>
     </div>
   </div>
-
-<div id="viewDiv"></div>
 
 {% endblock %}
 

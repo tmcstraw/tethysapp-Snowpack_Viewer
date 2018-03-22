@@ -13,6 +13,10 @@
 {% block app_navigation_items %}
 <h6>Region Name</h6>
 <br>
+ <li class="active"><a href="{% url 'snowpack_viewer:home' %}">Home</a></li>
+  <li><a href="{% url 'snowpack_viewer:mapview' %}">Map View</a></li>
+  <li class="separator"></li>
+
 <p>Select a Day</p>
 {% gizmo date_picker %}
 
@@ -26,7 +30,12 @@
   <span id="layToggle">
     <input type="checkbox" id="snoLyr" checked> Snotel Stations
   </span>
-
+<br>
+<br>
+  <li><a href="{% url 'snowpack_viewer:data_services' %}">Data Services</a></li>
+  <li><a href="{% url 'snowpack_viewer:about' %}">About</a></li>
+  <li><a href="{% url 'snowpack_viewer:proposal' %}">Project Proposal</a></li>
+  <li><a href="{% url 'snowpack_viewer:mockup' %}">Mockup Wireframes</a></li>
 {% endblock %}
 
 {% block app_content %}
